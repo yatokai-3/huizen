@@ -137,7 +137,7 @@ def run_once():
 
         print(f"{r['name']} | {prev_val} -> {curr_val}")
 
-        if prev_val == 0 and curr_val >= 1:
+        if curr_val > prev_val:
             changed.append(r)
 
     save_state(new_state)
