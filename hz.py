@@ -1,4 +1,3 @@
-
 import requests
 from bs4 import BeautifulSoup
 import json
@@ -16,11 +15,11 @@ HEADERS = {"User-Agent": "Mozilla/5.0"}
 
 
 # =====================
-# LOAD/SAVE STATE
+# STATE
 # =====================
 def load_state():
     if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as f:
+        with open(DATA_FILE) as f:
             return json.load(f)
     return {}
 
@@ -41,17 +40,15 @@ def fetch():
     results = []
 
     for card in cards:
-        name = card.select_one("button .block")
-        name = name.get_text(strip=True) if name else None
+        name_el = card.select_one("button .block")
+        name = name_el.get_text(strip=True) if name_el else None
 
         total = 0
         available = 0
 
-        chips = card.select("div.q-chip")
-
-        for chip in chips:
+        for chip in card.select("div.q-chip"):
             icon = chip.select_one("i.q-icon")
-            val  = chip.select_one("span.text-bold")
+            val = chip.select_one("span.text-bold")
 
             if not val:
                 continue
@@ -79,35 +76,30 @@ def fetch():
 # EMAIL
 # =====================
 def send_email(changed):
+    if not changed:
+        print("No alert")
+        return
+
     gmail_user = os.environ["GMAIL_USER"]
     gmail_pass = os.environ["GMAIL_APP_PASS"]
     notify_email = os.environ["NOTIFY_EMAIL"]
-
-    if not changed:
-        print("No new availability")
-        return
 
     rows = ""
     for r in changed:
         rows += f"""
         <div style='border:1px solid #ddd;padding:10px;margin:10px'>
-            <b>{r['name']}</b><br>
-            Available: <b style='color:green'>{r['available']}</b><br>
-            Total: {r['total']}
+          <b>{r['name']}</b><br>
+          Available: <b style='color:green'>{r['available']}</b><br>
+          Total: {r['total']}
         </div>
         """
 
-    html = f"""
-    <h2>🚨 Rooms Opened (0 → 1+)</h2>
-    {rows}
-    """
-
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"🚨 Rooms Available ({len(changed)} buildings)"
+    msg["Subject"] = f"🚨 Rooms Opened ({len(changed)} building)"
     msg["From"] = gmail_user
     msg["To"] = notify_email
 
-    msg.attach(MIMEText(html, "html"))
+    msg.attach(MIMEText(f"<h2>Rooms Available</h2>{rows}", "html"))
 
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(gmail_user, gmail_pass)
@@ -117,24 +109,27 @@ def send_email(changed):
 
 
 # =====================
-# MAIN LOGIC
+# MAIN
 # =====================
 def run_once():
-    prev = load_state()
-    data = fetch()
+    prev_state = load_state()
+    current_data = fetch()
 
     changed = []
     new_state = {}
 
-    for r in data:
-        prev_val = prev.get(r["id"], 0)
+    for r in current_data:
+        b_id = r["id"]
+
+        prev_val = prev_state.get(b_id, 0)
         curr_val = r["available"]
 
-        new_state[r["id"]] = curr_val
+        # ✅ ALWAYS save current state (even 0)
+        new_state[b_id] = curr_val
 
         print(f"{r['name']} | prev={prev_val} → now={curr_val}")
 
-        # ✅ ONLY trigger when 0 → 1+
+        # ✅ trigger only on 0 → 1+
         if prev_val == 0 and curr_val >= 1:
             changed.append(r)
 
