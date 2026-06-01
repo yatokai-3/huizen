@@ -5,6 +5,10 @@ on:
     - cron: '*/15 * * * *'
   workflow_dispatch:
 
+
+permissions:
+  contents: write
+
 concurrency:
   group: jaagpad-check
   cancel-in-progress: true
