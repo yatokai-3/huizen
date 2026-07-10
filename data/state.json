@@ -3,7 +3,7 @@
     "id": "jaagpad 1",
     "name": "Jaagpad 1",
     "total": 95,
-    "available": 0
+    "available": 1
   },
   "polakweg 14": {
     "id": "polakweg 14",
@@ -15,6 +15,6 @@
     "id": "polakweg 15",
     "name": "Polakweg 15",
     "total": 64,
-    "available": 0
+    "available": 1
   }
 }
